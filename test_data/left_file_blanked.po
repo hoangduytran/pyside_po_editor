@@ -1,0 +1,76 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2023-07-25 09:16+0100\n"
+"PO-Revision-Date: 2024-01-03 08:30+0000\n"
+"Last-Translator: Hoang Duy Tran LEFT <hoangduytran1960@googlemail.com>\n"
+"Language: vi\n"
+"Language-Team: vi <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.15.0\n"
+
+#. Added from Clipboard
+msgid " Mechanical Design Engineer"
+msgstr "Kỹ Sư Thiết Kế Cơ Khí"
+
+#. Added from Clipboard
+msgid " YourExportedFile (.py)"
+msgstr "Tập Tin Xuất Khẩu Của Bạn (.py)"
+
+#. :src: bpy.types.AOV
+#. :src: bpy.types.CYCLES_RENDER_PT_passes_aov
+#. :src: bpy.types.VIEWLAYER_PT_layer_passes_aov
+#. :src: bpy.types.ViewLayer.active_aov
+#. :src: bpy.types.ViewLayer.aovs
+#: source/blender/makesrna/intern/rna_space.cc:484
+msgid "Shader AOV"
+msgstr "AOV của Bộ Tô Bóng"
+
+#: ../../manual/interface/controls/nodes/editing.rst:36
+#, fuzzy
+msgid ""
+":kbd:`LMB`-click on a socket and drag. \"Connect to Output\" will see a "
+"line coming out of it; this is called a *link*. Keep dragging and connect"
+" the link to an input socket of another node, then release the "
+":kbd:`LMB`."
+msgstr ""
+":kbd:`NCT (LMB)`-bấm chuột bật một ổ cắm và lực cản/kéo rê. \":abbr:`Kết "
+"Nối sang Đầu Ra (Connect to Output)`\" sẽ xin xem một đường nét/thẳng "
+"coming ra của it; this được được gọi là một \":abbr:`kết nối (link)`\". "
+"Giữ kéo rê và kết nối the kết nối tới một đầu vào ổ cắm của một cái "
+"khác/ngoài ra nút, sau đó thả the :kbd:`NCT (LMB)`."
+
+# | msgctxt previous-context
+# | msgid previous-untranslated-string
+#: src/mainwindow.cpp:150
+msgctxt "File Menu"
+msgid "Open"
+msgstr "Öffnen"
+
+#: src/mainwindow.cpp:151
+msgctxt "File Menu"
+msgid "Save"
+msgstr "Speichern"
+
+#: src/dialog.cpp:75
+#, fuzzy
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#. Pluralized entry for document management
+#: src/items.cpp:45
+msgid "Document"
+msgid_plural "Documents"
+msgstr[0] "Dokument"
+
+#. Status message with inline format specifiers
+#: src/statusbar.cpp:200
+#, python-format
+msgid "User %s has logged in at %s."
+msgstr "Benutzer %s hat sich um %s angemeldet."
+
