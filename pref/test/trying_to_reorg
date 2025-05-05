@@ -1,0 +1,340 @@
+import os, math
+from typing import Optional, List, Tuple, Callable
+
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget, QTableWidgetItem,
+    QPushButton, QComboBox, QFileDialog, QLineEdit, QSizePolicy, QHeaderView, QDialog,
+)
+from PySide6.QtCore import Qt, QEvent, Signal, QMimeData, QUrl, QPoint, QSettings
+from PySide6.QtGui import QDrag, QAction, QKeySequence, QShortcut
+
+from .translation_db_actions import TranslationDB
+from tran_search_nav_bar import SearchNavBar
+from gv import logger
+
+# How many entries to show per page
+ENTRIES_PER_PAGE = 30
+
+DEFAULT_EXPORT_PATH = os.path.join(os.getcwd(), "translation_db.po")
+
+# ─── SPECIFICATIONS ──────────────────────────────────────────────────────────
+
+# 1) Search Bar specs: (attr_name, placeholder_or_text, unused_callable)
+SEARCH_BAR: List[Tuple[str,str,int,str,str]] = [
+    ("search_box",      "Search msgid or msgstr text", 1, None, "_on_search"),
+    ("search_btn", "Find",                              0, "clicked",      "_on_search"),
+    ("prev_search_btn", "↑",                           0, "clicked",      "_select_previous_result"),
+    ("next_search_btn", "↓",                           0, "clicked",      "_select_next_result"),
+]
+
+# 2) I/O buttons
+IO_BUTTONS: List[Tuple[str,str,Callable]] = [
+    ("import_button", "Import PO…", lambda self: self._on_import()),
+    ("export_button", "Export PO…", lambda self: self._on_export()),
+]
+
+# 3) Table columns
+TABLE_COLUMNS: List[Tuple[str,int]] = [
+    ("ID",                                QHeaderView.ResizeToContents),
+    ("Message (msgid)",                   QHeaderView.Stretch),
+    ("Latest ▶ Translation (msgstr)",     QHeaderView.Stretch),
+]
+
+# 4) Control buttons
+CONTROL_BUTTONS: List[Tuple[str,str,Callable]] = [
+    ("close_button",  "Close",  lambda self: self.close()),
+    ("edit_button",   "Edit…",  lambda self: self._on_edit_entry(new=False)),
+    ("add_button",    "Add…",   lambda self: self._on_edit_entry(new=True)),
+    ("delete_button", "Delete", lambda self: self._on_delete_entry()),
+]
+
+# 5) Pager buttons
+PAGER_BUTTONS: List[Tuple[str,str,Callable[["TranslationHistoryDialog"],None]]]=[
+    ("first_page_button",    "|<", lambda s: s._go_to_page(0)),
+    ("previous_page_button", "<",  lambda s: s._go_to_page(s.current_page_number - 1)),
+    ("next_page_button",     ">",  lambda s: s._go_to_page(s.current_page_number + 1)),
+    ("last_page_button",     ">|", lambda s: s._go_to_page(s.total_number_of_pages - 1)),
+]
+
+# 6) Keyboard shortcuts for paging
+KEYBOARD_SHORTCUTS = {
+    "first_page":    ("page_first",    "Home",     "first_page_button"),
+    "previous_page": ("page_prev",     "PageUp",   "previous_page_button"),
+    "next_page":     ("page_next",     "PageDown", "next_page_button"),
+    "last_page":     ("page_last",     "End",      "last_page_button"),
+}
+
+
+class TranslationHistoryDialog(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.db = TranslationDB()
+        self.current_unique_id: Optional[int] = None
+        self._drag_start_pos = QPoint()
+
+        # ─── paging state ────────────────────────────────────────────────
+        self.complete_history_entry_list: List[Tuple[int,str]] = []
+        self.current_page_number = 0
+        self.total_number_of_pages = 1
+        # ────────────────────────────────────────────────────────────────
+
+        # ─── build UI ───────────────────────────────────────────────────
+        main_layout = QVBoxLayout(self)
+
+        # search state
+        self._search_indices: List[int] = []
+        self._current_search = -1
+
+        # ─── SEARCH ROW BUILT FROM SPEC ──────────────────────────
+        search_row = QHBoxLayout()
+        for attr, label, stretch, signal, callback_name in SEARCH_BAR:
+            if attr == "search_box":
+                widget = QLineEdit(self)
+                widget.setPlaceholderText(label)
+            else:
+                widget = QPushButton(label, self)
+            # add to layout
+            search_row.addWidget(widget, stretch)
+            # stash as self.attr
+            setattr(self, attr, widget)
+            # hook up signal → method
+            if callback_name and signal:
+                sig = getattr(widget, signal)
+                cb = getattr(self, callback_name)
+                sig.connect(cb)
+        main_layout.addLayout(search_row)
+
+        # 2) I/O buttons
+        io_row = QHBoxLayout()
+        for attr, label, cb in IO_BUTTONS:
+            btn = QPushButton(label, self); setattr(self, attr, btn)
+            btn.clicked.connect(lambda _,f=cb: f(self))
+            io_row.addWidget(btn)
+        io_row.addStretch()
+
+        # — Results count label —
+        self.results_label = QLabel("0 found", self)
+        io_row.addWidget(self.results_label)
+        main_layout.addLayout(io_row)
+
+        # 3) Table
+        self.history_table = QTableWidget(0, len(TABLE_COLUMNS))
+        self.history_table.setHorizontalHeaderLabels([h for h,_ in TABLE_COLUMNS])
+        hdr = self.history_table.horizontalHeader()
+        for i,(_,mode) in enumerate(TABLE_COLUMNS):
+            hdr.setSectionResizeMode(i, mode)
+        self.history_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.history_table.setDragEnabled(True)
+        main_layout.addWidget(self.history_table)
+
+        # 4) Control buttons
+        ctrl_row = QHBoxLayout()
+        for attr, label, cb in CONTROL_BUTTONS:
+            btn = QPushButton(label, self);
+            setattr(self, attr, btn)
+            btn.clicked.connect(lambda _,f=cb: f(self))
+            ctrl_row.addWidget(btn)
+        ctrl_row.addStretch()
+        main_layout.addLayout(ctrl_row)
+
+        # 5) Pager
+        pager_row = QHBoxLayout()
+        for attr, label, cb in PAGER_BUTTONS:
+            btn = QPushButton(label, self); setattr(self, attr, btn)
+            btn.clicked.connect(lambda _,f=cb: f(self))
+            pager_row.addWidget(btn)
+        self.page_info_label = QLabel(self); pager_row.insertWidget(2, self.page_info_label)
+        pager_row.addStretch()
+        main_layout.addLayout(pager_row)
+
+        # Create and add the search navigation bar
+        self.navbar = SearchNavBar(self)
+        main_layout.addWidget(self.navbar)
+
+        main_layout.setStretch(0, 0)
+        main_layout.setStretch(1, 0)
+        main_layout.setStretch(2, 1)
+
+        # wire table & drag/drop
+        self.history_table.cellClicked.connect(self._on_row_selected)
+        self.setAcceptDrops(True)
+        self.history_table.viewport().installEventFilter(self)
+
+        # keyboard shortcuts
+        self._apply_keyboard_shortcuts()
+
+        # initial load
+        self._refresh_history_entries()
+        # ────────────────────────────────────────────────────────────────
+
+    def _go_to_page(self, page_index: int):
+        ni = max(0, min(self.total_number_of_pages-1, page_index))
+        if ni != self.current_page_number:
+            self.current_page_number = ni
+            self._refresh_history_entries()
+
+    def _refresh_history_entries(self):
+        # Load or rebuild the complete list only once
+        if not self.complete_history_entry_list:
+            self.complete_history_entry_list = self.db.list_entries()
+
+        total_entries = len(self.complete_history_entry_list)
+        self.total_number_of_pages = max(1, math.ceil(total_entries / ENTRIES_PER_PAGE))
+
+        # Update the total number of entries in the search navigation bar
+        self.navbar.setTotal(total_entries)
+
+        # Get the current page's entries
+        start_idx = self.current_page_number * ENTRIES_PER_PAGE
+        end_idx = start_idx + ENTRIES_PER_PAGE
+        page_entries = self.complete_history_entry_list[start_idx:end_idx]
+
+        # Clear the table before populating it
+        self.history_table.setRowCount(0)
+
+        # Prepare list of row indices to highlight based on search results
+        self._highlight_indices_on_page = []
+
+        for idx, (uid, msgid) in enumerate(page_entries):
+            # Insert each row into the table
+            row = self.history_table.rowCount()
+            self.history_table.insertRow(row)
+
+            # ID column (non-editable)
+            id_item = QTableWidgetItem(str(uid))
+            id_item.setFlags(id_item.flags() ^ Qt.ItemIsEditable)
+            self.history_table.setItem(row, 0, id_item)
+
+            # Msgid column (non-editable)
+            msgid_item = QTableWidgetItem(msgid)
+            msgid_item.setFlags(msgid_item.flags() ^ Qt.ItemIsEditable)
+            self.history_table.setItem(row, 1, msgid_item)
+
+            # Latest version (msgstr)
+            latest_version = self.db.get_latest_version(uid)
+            latest_translation = self.db.get_msgstr(uid, latest_version) or ""
+            combo = QComboBox()
+            combo.addItem(f"{latest_version} ▶ {latest_translation}", latest_version)
+            self.history_table.setCellWidget(row, 2, combo)
+
+            # Check if the current row should be highlighted based on the search
+            if self._search_indices:
+                global_row_index = start_idx + idx
+                if global_row_index in self._search_indices:
+                    self._highlight_indices_on_page.append(idx)  # Mark the row index for highlighting
+
+        # After populating the table, highlight the search results for the current page
+        if self._highlight_indices_on_page:
+            self._highlight_current_search()
+
+        # Update page label
+        self.page_info_label.setText(
+            f"Page {self.current_page_number + 1} of {self.total_number_of_pages}"
+        )
+
+    def _on_import(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Import PO…", "", "PO Files (*.po)")
+        if path:
+            self.db.import_po(path)
+            self.complete_history_entry_list.clear()
+            self.current_page_number = 0
+            self._refresh_history_entries()
+
+    def _on_export(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Export PO…", DEFAULT_EXPORT_PATH, "PO Files (*.po)")
+        if path:
+            self.db.export_to_po(path)
+
+    def _apply_keyboard_shortcuts(self):
+        settings = QSettings("POEditor","Settings")
+        for key, (sk, default, btn_name) in KEYBOARD_SHORTCUTS.items():
+            seq = settings.value(f"shortcut/{sk}", default)
+            btn = getattr(self, btn_name)
+            sc = QShortcut(QKeySequence(seq), self.history_table)
+            sc.setContext(Qt.ApplicationShortcut)
+            sc.activated.connect(btn.click)
+
+    # ─── SEARCH METHODS ───────────────────────────────────────────────────────
+    def _on_search(self):
+        text = self.search_box.text().strip().lower()
+        self._search_indices.clear()
+        self._current_search = -1
+        if not text:
+            self._clear_search()
+            return
+
+        # scan all entries
+        if not self.complete_history_entry_list:
+            self.complete_history_entry_list = self.db.list_entries()
+
+        for idx, (uid, msgid) in enumerate(self.complete_history_entry_list):
+            if text in msgid.lower():
+                self._search_indices.append(idx)
+            else:
+                latest = self.db.get_latest_version(uid)
+                mstr = (self.db.get_msgstr(uid, latest) or "").lower()
+                if text in mstr:
+                    self._search_indices.append(idx)
+
+        if self._search_indices:
+            self._current_search = 0
+            self._go_to_search_result()
+
+    def _go_to_search_result(self):
+        idx = self._search_indices[self._current_search]
+        self._go_to_page(idx // ENTRIES_PER_PAGE)
+        self._highlight_current_search()
+
+    def _select_previous_result(self):
+        if not self._search_indices: return
+        self._current_search = max(0, self._current_search - 1)
+        self._go_to_search_result()
+
+    def _select_next_result(self):
+        if not self._search_indices: return
+        self._current_search = min(len(self._search_indices)-1, self._current_search + 1)
+        self._go_to_search_result()
+
+    def _highlight_current_search(self):
+        self.history_table.clearSelection()
+        idx = self._search_indices[self._current_search]
+        row = idx % ENTRIES_PER_PAGE
+        self.history_table.selectRow(row)
+
+    def _clear_search(self):
+        self._search_indices.clear()
+        self.history_table.clearSelection()
+    # ────────────────────────────────────────────────────────────────────────
+
+    def _on_row_selected(self, row: int, _col: int):
+        uid = self.history_table.item(row, 0).text()
+        self.current_unique_id = int(uid)
+
+    def _on_edit_entry(self, new: bool):
+        dlg = _EntryDialog(self, self.db,
+                           None if new else self.current_unique_id,
+                           is_new=new)
+        if dlg.exec() == QDialog.Accepted:
+            self.complete_history_entry_list.clear()
+            self._refresh_history_entries()
+
+    def _on_delete_entry(self):
+        if self.current_unique_id is not None:
+            self.db.delete_entry(self.current_unique_id)
+            self.complete_history_entry_list.clear()
+            self._refresh_history_entries()
+
+    # ─── DRAG & DROP ────────────────────────────────────────────────────────
+    def dragEnterEvent(self, event: QEvent):
+        if event.mimeData().hasUrls() and any(u.toLocalFile().lower().endswith('.po')
+                for u in event.mimeData().urls()):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QEvent):
+        for u in event.mimeData().urls():
+            path = u.toLocalFile()
+            if path.lower().endswith('.po'):
+                self._on_import()
+                return

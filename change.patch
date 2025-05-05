@@ -1,0 +1,66 @@
+Subject: [PATCH] Enable Paste into suggestions table and handle record creation
+---
+Index: main_utils/popup_mnu.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main_utils/popup_mnu.py b/main_utils/popup_mnu.py
+--- a/main_utils/popup_mnu.py
++++ b/main_utils/popup_mnu.py
+@@     def show_for(self, widget, global_pos):
+-        # Paste?
+-        clip = QApplication.clipboard()
+-        can_paste = isinstance(widget, (QTextEdit, QLineEdit)) and bool(clip.text())
+-        self.paste_action.setEnabled(can_paste)
++        # Paste? allow into text widgets or the suggestions table
++        clip = QApplication.clipboard()
++        txt = clip.text().strip()
++        can_paste = False
++        if isinstance(widget, (QTextEdit, QLineEdit)):
++            can_paste = bool(txt)
++        elif isinstance(widget, QTableView) and widget is main_gv.suggestion_version_table:
++            can_paste = bool(txt)
++        self.paste_action.setEnabled(can_paste)
+@@
+-    def _paste(self):
+-        w = self._target_widget
+-        if isinstance(w, (QTextEdit, QLineEdit)):
+-            w.paste()
++    def _paste(self):
++        w = self._target_widget
++        # Standard paste into text widgets
++        if isinstance(w, (QTextEdit, QLineEdit)):
++            w.paste()
++            return
++
++        # Paste into suggestions table: update or create DatabasePORecord
++        if isinstance(w, QTableView) and w is main_gv.suggestion_version_table:
++            text = QApplication.clipboard().text().strip()
++            if not text:
++                return
++
++            # get model and current record
++            model = w.model()
++            rec: DatabasePORecord = model.record()
++
++            # find existing suggestion or create new
++            po_ent = main_gv.current_po_rec
++            existing = main_gv.db.get_suggestion(po_ent.msgid, po_ent.msgctxt)
++            if existing:
++                rec = existing
++            else:
++                rec = DatabasePORecord(
++                    msgid=po_ent.msgid,
++                    msgctxt=po_ent.msgctxt,
++                    msgstr_versions=[]
++                )
++                main_gv.db.add_suggestion(rec)
++
++            # append new text if not a duplicate
++            versions = [v for _, v in rec.msgstr_versions]
++            if text not in versions:
++                rec.add_version(text)
++                main_gv.db.save_suggestion(rec)
++                model.refresh()
++            return

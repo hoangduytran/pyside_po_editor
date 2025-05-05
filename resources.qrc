@@ -1,0 +1,8 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/">
+    <file>rs/styles.css</file>
+<!--    <file>icons/workspace.svg</file>-->
+<!--    <file>icons/filesearch.svg</file>-->
+  </qresource>
+</RCC>

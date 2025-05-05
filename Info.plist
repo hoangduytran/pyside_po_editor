@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC
+    "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- The human‐readable name of your app -->
+    <key>CFBundleName</key>
+    <string>POEditor</string>
+
+    <!-- The executable file in Contents/MacOS/ -->
+    <key>CFBundleExecutable</key>
+    <string>POEditor</string>
+
+    <!-- A reverse‑DNS unique identifier for your app -->
+    <key>CFBundleIdentifier</key>
+    <string>com.hoangduytran.POEditor</string>
+
+    <!-- Versioning -->
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- Tell macOS we want a native menubar & dock icon -->
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>

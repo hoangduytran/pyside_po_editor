@@ -1,0 +1,100 @@
+/* rs/styles.css */
+
+/* ── Toolbar Container ─────────────────────────────────── */
+#LeftToolBar {
+  background-color: black;    /* paint the bar itself black */
+}
+#LeftToolBar QPushButton,
+#LeftToolBar QToolButton {
+  background-color: transparent;
+  border: none;
+  color: #FFFFFF;
+  padding: 8px;
+}
+#LeftToolBar QToolButton:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+#LeftToolBar QToolButton:checked {
+  background-color: #005A9E;
+  border-radius: 4px;
+}
+
+/* ── CollapsibleSection headers ────────────────────────── */
+CollapsibleSection > QPushButton {
+  background-color: #222;
+  color: #EEE;
+  font-size: 14px;
+  padding: 6px 10px;
+  border: none;
+  border-bottom: 1px solid #444;
+}
+CollapsibleSection > QPushButton:hover {
+  background-color: #333;
+}
+CollapsibleSection > QWidget {
+  background-color: #1E1E1E;
+}
+
+/* ── TreeView (Explorer) ───────────────────────────────── */
+#ExplorerPanel QTreeView {
+  background-color: #fff;
+  color: #111;
+}
+#ExplorerPanel QTreeView::item:hover {
+  background-color: #f0f0f0;
+}
+#ExplorerPanel QTreeView::item:selected {
+  background-color: #007ACC !important;
+  color: #FFF !important;
+}
+
+/* ── TabWidget styling ─────────────────────────────────── */
+QTabWidget::pane {
+  border-top: 1px solid #444;
+  background: #1E1E1E;
+}
+QTabBar::tab {
+  background: #2D2D2D;
+  color: #CCC;
+  padding: 6px 12px;
+  border: 1px solid #444;
+  border-bottom: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  margin-right: 2px;
+}
+QTabBar::tab:selected {
+  background: #1E1E1E;
+  color: #FFF;
+}
+QTabBar::tab:hover {
+  background: #3A3A3A;
+}
+
+/* ── Splitter handle ──────────────────────────────────── */
+QSplitter::handle {
+  background-color: #333;
+}
+QSplitter::handle:hover {
+  background-color: #444;
+}
+
+/* ── Scrollbars ───────────────────────────────────────── */
+QScrollBar:vertical {
+  border: none;
+  background: #1E1E1E;
+  width: 10px;
+  margin: 0;
+}
+QScrollBar::handle:vertical {
+  background: #555;
+  min-height: 20px;
+  border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+  background: #666;
+}
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+  height: 0;
+}
