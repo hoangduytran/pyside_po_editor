@@ -3,7 +3,7 @@
 import os
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QToolButton,
-    QFileDialog, QTreeView, QSizePolicy, QFileSystemModel
+    QFileDialog, QTreeView, QSizePolicy, QFileSystemModel, QHeaderView
 )
 from PySide6.QtCore    import Qt, QDir, QSettings
 
@@ -50,7 +50,12 @@ class ExplorerPanel(QWidget):
 
         from PySide6.QtWidgets import QHeaderView
         header = self.view.header()
+        # allow manual dragging:
         header.setSectionResizeMode(QHeaderView.Interactive)
+        # but size each section to fit its contents right now:
+        # **new**: re-fit *all* columns as soon as the directory is loaded
+        self.fs_model.directoryLoaded.connect(self._on_dir_loaded)
+
         self.view.setSortingEnabled(True)
         self.view.sortByColumn(0, Qt.AscendingOrder)
 
@@ -65,6 +70,27 @@ class ExplorerPanel(QWidget):
         settings = QSettings("com.poeditor", "POEditor")
         last = settings.value("lastDirectory", QDir.homePath())
         self._set_directory(last)
+        # allow this panel to grow & shrink in the splitter
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def _on_dir_loaded(self, loaded_path: str):
+        # only re-size if it's the directory we care about
+        # (optional check: if loaded_path != main_gv.current_dir: return)
+        header = self.view.header()
+        header.resizeSections(QHeaderView.ResizeToContents)
+
+    # def resizeEvent(self, event):
+    #     super().resizeEvent(event)
+    #     self._equalize_columns()
+    #
+    # def _equalize_columns(self):
+    #     header = self.view.header()
+    #     total_width = self.view.viewport().width()
+    #     count = header.count()
+    #     if count:
+    #         per_col = total_width // count
+    #         for i in range(count):
+    #             header.resizeSection(i, per_col)
 
     def _apply_path(self):
         text = self.path_edit.text().strip()

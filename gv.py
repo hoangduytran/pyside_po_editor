@@ -40,6 +40,11 @@ class MainGlobalVar:
     def __init__(self):
         self.open_tabs:    List[TabRecord] = []
         self.recent_files: List[str]       = []
+        self.opened_file_list:   Optional[List[str]] = None
+        self.exclude_flag_list:  Optional[List[str]] = None
+        self.include_flag_list:  Optional[List[str]] = None     # <— add this
+        self.find_pattern_list:  Optional[List[str]] = None
+        self.replace_pattern_list: Optional[List[str]] = None
 
 # singleton
 main_gv = MainGlobalVar()

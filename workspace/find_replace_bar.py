@@ -94,7 +94,7 @@ class FindReplaceBar(QWidget):
         self.toggle_btn.setIcon(icon_from_text(ButtonSymbol.TOGGLE.symbol))
         self.toggle_btn.setIconSize(QSize(20, 20))
         self.toggle_btn.setToolTip(ButtonSymbol.TOGGLE.tooltip)
-        self.toggle_btn.setCheckable(True)
+        # self.toggle_btn.setCheckable(True)
         self.toggle_btn.setChecked(False)
         self.toggle_btn.setFixedWidth(24)
         self.toggle_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)

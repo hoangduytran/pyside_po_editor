@@ -8,7 +8,7 @@ from PySide6.QtGui import (
     QKeySequence, QAction, QShortcut,
 )
 from PySide6.QtCore import (
-    QSettings, QEvent, Qt, QItemSelectionModel, QSize,
+    QSettings, QEvent, Qt, QItemSelectionModel, QSize, QTimer,
 )
 
 from gv import main_gv, MAIN_GUI_ACTION_SPECS, apply_table_shortcuts
@@ -24,12 +24,11 @@ from po_editor.po_editor_main_menu import POEditorMainMenu
 from PySide6.QtWidgets import QHeaderView
 from gv import MAIN_TABLE_COLUMNS
 
-
 # from workspace.search_dock import SearchDock
 # import resources_rc
 
 class POEditorWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, path:str = None):
         super().__init__()
         # self.setWindowTitle("PO File Editor")
         # Containers for dynamically created QActions
@@ -46,6 +45,13 @@ class POEditorWindow(QMainWindow):
         get_actions(main_gv)['on_apply_fonts']()
         self.apply_shortcuts()
         self.showMaximized()
+
+        if path:
+            # ─── finally, if we were given a path, defer loading it ─────
+            actions = get_actions(main_gv)
+            
+            # wait until the event loop is running, so all widgets are fully ready
+            QTimer.singleShot(20, lambda: actions['on_do_load_file'](path))
 
     # … inside class POEditorWindow …
 

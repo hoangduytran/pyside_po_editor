@@ -56,32 +56,30 @@ def get_actions(gv: MainGlobalVar):
 
     # ─── 2) All the heavy lifting of opening/switching tabs ─
     def _do_load_file(path: str):
-        # If already open, just switch to that tab
-        for rec in gv.open_tabs:
-            if rec.file_path == path:
-                gv.window.tabs.setCurrentWidget(rec.widget)
+        # 1) If it’s already open, just switch to that tab
+        for old_rec in gv.open_tabs:
+            if old_rec.file_path == path:
+                gv.window.tabs.setCurrentWidget(old_rec.widget)
                 return
 
+        # 2) Try to load the .po
         try:
-            rec.po_file = polib.pofile(path)
-            rec.file_path = path
-            _load_entries()
+            po_file = polib.pofile(path)
         except Exception as e:
             QMessageBox.critical(gv.window, "Error", f"Failed to open {path}:\n{e}")
             return
 
-        # Otherwise, instantiate a new editor + record
+        # 3) Instantiate your editor widget (which itself sets up tables, etc.)
         from po_editor.po_editor_widget import POEditorWidget
         editor = POEditorWidget(path)
         name = os.path.basename(path)
-        gv.window.tabs.addTab(editor, name)
-        gv.window.tabs.setCurrentWidget(editor)
 
+        # 4) Now make the TabRecord once, with the freshly loaded po_file
         rec = TabRecord(
             file_path=path,
             file_name=name,
             widget=editor,
-            po_file=editor.po,  # your widget should set .po on init
+            po_file=po_file,
             table=editor.table,
             table_model=editor.table_model,
             source_edit=editor.source_edit,
@@ -91,9 +89,15 @@ def get_actions(gv: MainGlobalVar):
             suggestion_model=editor.suggestion_model,
             suggestion_view=editor.suggestion_version_table,
         )
+
+        gv.window.tabs.addTab(editor, name)
+        gv.window.tabs.setCurrentWidget(editor)
         gv.open_tabs.append(rec)
 
-        # Update MRU list
+        # 5) Populate the freshly‐added tab with data
+        _load_entries()
+
+        # 6) Update your MRU list
         if path in gv.recent_files:
             gv.recent_files.remove(path)
         gv.recent_files.insert(0, path)
@@ -449,6 +453,7 @@ def get_actions(gv: MainGlobalVar):
     return {
         'on_open_file':               on_open_file,
         'on_load_recent_files':       on_load_recent_files,
+        'on_do_load_file':            _do_load_file,
         'on_save_file':               on_save_file,
         'on_save_file_as':            on_save_file_as,
         'on_open_preferences':        on_open_preferences,

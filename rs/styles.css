@@ -1,22 +1,40 @@
 /* rs/styles.css */
+/* for the file‐list rows */
+QTreeView {
+  font-size: 14px;    /* must use px in QSS, pt will be ignored */
+}
+
+/* for the column headers (“Name”, “Size”, etc.) */
+QHeaderView::section {
+  font-size: 14px;
+}
 
 /* ── Toolbar Container ─────────────────────────────────── */
 #LeftToolBar {
-  background-color: black;    /* paint the bar itself black */
+  background-color: black;
 }
+
+/* ── Toolbar Buttons (both QPushButton & QToolButton) ───── */
 #LeftToolBar QPushButton,
 #LeftToolBar QToolButton {
   background-color: transparent;
   border: none;
   color: #FFFFFF;
   padding: 8px;
+  font-size: 18px;
 }
+
+/* Hover state */
+#LeftToolBar QPushButton:hover,
 #LeftToolBar QToolButton:hover {
-  background-color: rgba(255,255,255,0.1);
+  background-color: rgba(0,123,204,0.5) !important;  /* 20% “VS Blue” */
 }
+
+/* Checked/pressed state */
+#LeftToolBar QPushButton:checked,
 #LeftToolBar QToolButton:checked {
-  background-color: #005A9E;
-  border-radius: 4px;
+  background-color: #005A9E !important;
+  border-radius: 4px !important;
 }
 
 /* ── CollapsibleSection headers ────────────────────────── */
