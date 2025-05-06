@@ -197,6 +197,8 @@ if __name__ == "__main__":
 
     window = MainWindow()
     window.show()
+    main_gv.window = window
+    main_gv.open_tabs = []
 
     actions = get_actions(main_gv)
     QTimer.singleShot(20, actions['on_load_recent_files'])

@@ -38,6 +38,7 @@ class MainGlobalVar:
     App‐wide registry: only MRU + open tabs.
     """
     def __init__(self):
+        self.window = None
         self.open_tabs:    List[TabRecord] = []
         self.recent_files: List[str]       = []
         self.opened_file_list:   Optional[List[str]] = None
