@@ -30,6 +30,12 @@ from gv import MAIN_TABLE_COLUMNS
 class POEditorWindow(QMainWindow):
     def __init__(self, path:str = None):
         super().__init__()
+
+        # Initialize the global QTabWidget if it doesn't exist
+        if main_gv.open_tabs is None:
+            main_gv.open_tabs = QTabWidget()
+            main_gv.open_tabs.currentChanged.connect(self._on_tab_changed)
+
         # self.setWindowTitle("PO File Editor")
         # Containers for dynamically created QActions
         self.qactions = {}
@@ -55,6 +61,18 @@ class POEditorWindow(QMainWindow):
 
     # … inside class POEditorWindow …
 
+    def _on_tab_changed(self, index: int):
+        """
+        Update the current_tab in MainGlobalVar when the active tab changes.
+        """
+        if index >= 0:
+            widget = main_gv.open_tabs.widget(index)
+            for rec in main_gv.open_tabs:
+                if rec.widget == widget:
+                    main_gv.current_tab = rec
+                    break
+
+    
     def _create_widgets(self):
         # 1) Create the Find/Replace bar (initially hidden)
         from workspace.find_replace_bar import FindReplaceBar

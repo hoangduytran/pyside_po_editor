@@ -38,7 +38,7 @@ def get_actions(gv: MainGlobalVar):
     def _current_rec():
         """Find the TabRecord whose widget is the active tab."""
         win = gv.window
-        widget = win.tabs.currentWidget()
+        widget = win.open_tabs.currentWidget()
         for rec in gv.open_tabs:
             if rec.widget is widget:
                 return rec
@@ -56,10 +56,19 @@ def get_actions(gv: MainGlobalVar):
 
     # ─── 2) All the heavy lifting of opening/switching tabs ─
     def _do_load_file(path: str):
-        # 1) If it’s already open, just switch to that tab
-        for old_rec in gv.open_tabs:
-            if old_rec.file_path == path:
-                gv.window.tabs.setCurrentWidget(old_rec.widget)
+        """
+        Load a file into a new tab, initializing the QTabWidget if necessary.
+        """
+        # Initialize the QTabWidget if it doesn't exist
+        if gv.open_tabs is None:
+            gv.open_tabs = QTabWidget()
+            gv.window.setCentralWidget(gv.open_tabs)
+
+        # Check if the file is already open
+        for i in range(gv.open_tabs.count()):
+            tab = gv.open_tabs.widget(i)
+            if isinstance(tab, TabRecord) and tab.file_path == path:
+                gv.open_tabs.setCurrentWidget(tab.widget)
                 return
 
         # 2) Try to load the .po
@@ -90,8 +99,8 @@ def get_actions(gv: MainGlobalVar):
             suggestion_view=editor.suggestion_version_table,
         )
 
-        gv.window.tabs.addTab(editor, name)
-        gv.window.tabs.setCurrentWidget(editor)
+        gv.open_tabs.addTab(editor, name)
+        gv.open_tabs.setCurrentWidget(editor)
         gv.open_tabs.append(rec)
 
         # 5) Populate the freshly‐added tab with data

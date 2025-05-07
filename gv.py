@@ -1,17 +1,15 @@
 # gv.py
 # Global variables and constants for the PO Editor
 
-import re
-from typing import Optional, Any, List, Dict, Tuple, Pattern
-
-from polib import POEntry, POFile
-from PySide6.QtCore import QSettings, Qt
+from polib import (POEntry, POFile)
+from PySide6.QtCore import (QSettings, Qt)
 from PySide6.QtGui import (QFont, QKeyEvent, QKeySequence, QAction)
-from PySide6.QtWidgets import QTableWidget, QHeaderView
-
-from pref.tran_history.translation_db import TranslationDB
-from pref.kbd.keyboard_settings import TABLE_ACTIONS
-from po_editor.tab_record import TabRecord
+from PySide6.QtWidgets import (QTableWidget, QHeaderView)
+from typing import (Optional, Any, List, Dict, Tuple, Pattern)
+from pref.tran_history.translation_db import (TranslationDB)
+from pref.kbd.keyboard_settings import (TABLE_ACTIONS)
+from po_editor.tab_record import (TabRecord)
+import re
 
 # ─── Database & Logging ───────────────────────────────────────────────────────
 db = TranslationDB()
@@ -39,7 +37,8 @@ class MainGlobalVar:
     """
     def __init__(self):
         self.window = None
-        self.open_tabs:    List[TabRecord] = []
+        self.open_tabs: QTabWidget = None
+        self.current_tab: TabRecord = None
         self.recent_files: List[str]       = []
         self.opened_file_list:   Optional[List[str]] = None
         self.exclude_flag_list:  Optional[List[str]] = None
